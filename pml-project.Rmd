@@ -1,0 +1,120 @@
+---
+title: "PML project"
+author: "Qingliang Li"
+date: "5/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+## Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+## Projct task
+
+The goal of the project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. I
+created a report describing how to built the model, how I used cross validation, what I think the expected out of sample error is, and why I made the choices I did. I will also use the prediction model to predict 20 different test cases.
+
+### How I built the model
+
+The outcome is the "classe" variable, a factor variable with 5 levels.
+*exactly according to the specification (Class A)
+*throwing the elbows to the front (Class B)
+*lifting the dumbbell only halfway (Class C)
+*lowering the dumbbell only halfway (Class D)
+*throwing the hips to the front (Class E)
+The model was built based on maximizing the accuracy and minimizing the out-of-sample error. Two models were tested using decision tree and random forest algorithms. The model with the highest accuracy was chosen to predict the test cases.
+
+### How I used cross validation
+
+I split the traning data, 70% was used to build the model, 30% was used to for testing.
+
+### The expected out of sample error
+
+The expected out-of-sample error is caculated by (1-  accuracy), gained in the final model.
+
+###  Why I made the choices I did
+
+## Load data
+```{r }
+dataTrain <- read.csv("pml-training.csv",
+                      na.strings=c("NA","#DIV/0!", ""))
+dataTest <- read.csv("pml-testing.csv",
+                      na.strings=c("NA","#DIV/0!", ""))
+str(dataTrain)
+```
+
+## Clean data, remove the columns which are all NA,  delete irrelevant variables (columns 1 to 7)
+
+```{r}
+dataTrain <- dataTrain[,colSums(is.na(dataTrain)) == 0]
+dataTest <- dataTest[,colSums(is.na(dataTest)) == 0]
+dataTrain <- dataTrain[,-c(1:7)]
+dataTest <- dataTest[,-c(1:7)]
+```
+
+## Split dataTrain, 70% for building model, 30% for testing
+
+```{r}
+library(caret)
+library(lattice)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+set.seed(052220)
+train <- createDataPartition(y=dataTrain$classe,p=.70,list=F)
+training <- dataTrain[train,]
+testing <- dataTrain[-train,]
+```
+
+## Model 1: Decision Tree
+
+```{r}
+model1 <- rpart(classe ~ ., data=training, method="class")
+
+rpart.plot(model1)
+```
+
+## Test Model1 in testing
+
+```{r}
+pred1 <- predict(model1, testing, type = "class")
+confusionMatrix(pred1, testing$classe)
+```
+
+## Model 2: Random Forest
+
+```{r}
+model2 <- randomForest(classe ~. , data=training, method="class")
+
+pred2 <- predict(model2, testing, type = "class")
+confusionMatrix(pred2, testing$classe)
+```
+
+## Decision
+
+Accuracy of Random Forest model (model2) was 0.994 (95% CI: (0.992, 0.996)), and accuracy of Decision Tree model (model1) was 0.717 (95% CI: (0.706, 0.729)). The random Forest model (model2) was choosen to predict the dataTest.
+
+## Prediction
+
+Using the random Forest model (model2) to predict the classe in dataTest
+
+```{r}
+prediction <- predict(model2, dataTest, type="class")
+prediction
+```
